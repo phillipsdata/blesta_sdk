@@ -5,6 +5,7 @@ This development kit includes an API processor to make interfacing with the Bles
 ## Requirements ##
 
 * PHP 5.2.0 or greater
+* Blesta 3.0.0 or greater
 
 ### Using the API ###
 
