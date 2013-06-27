@@ -1,0 +1,16 @@
+
+	<ul>
+		<li>
+			<?php
+			$this->Form->label($this->_("NonmerchantDemo.user", true), "nonmerchant_user");
+			$this->Form->fieldText("user", $this->Html->ifSet($meta['user']), array('id'=>"nonmerchant_user"));
+			?>
+		</li>
+		<li>
+			<?php
+			$this->Form->label($this->_("NonmerchantDemo.key", true), "nonmerchant_key");
+			$this->Form->fieldText("key", $this->Html->ifSet($meta['key']), array('id'=>"nonmerchant_key"));
+			?>
+			<span class="tooltip"><?php $this->_("AppController.tooltip.text");?><div><?php $this->_("NonmerchantDemo.key_note");?></div></span>
+		</li>
+	</ul>

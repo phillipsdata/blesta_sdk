@@ -1,0 +1,16 @@
+
+	<ul>
+		<li>
+			<?php
+			$this->Form->label($this->_("MerchantDemoCc.user", true), "merchant_user");
+			$this->Form->fieldText("user", $this->Html->ifSet($meta['user']), array('id'=>"merchant_user"));
+			?>
+		</li>
+		<li>
+			<?php
+			$this->Form->label($this->_("MerchantDemoCc.key", true), "merchant_key");
+			$this->Form->fieldText("key", $this->Html->ifSet($meta['key']), array('id'=>"merchant_key"));
+			?>
+			<span class="tooltip"><?php $this->_("AppController.tooltip.text");?><div><?php $this->_("MerchantDemoCc.key_note");?></div></span>
+		</li>
+	</ul>
