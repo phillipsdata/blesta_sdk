@@ -69,13 +69,30 @@ echo "\n";
 
 // Example 3: Create a new support ticket
 echo "=== Create New Support Ticket ===\n";
+
+// Note: Support Manager plugin must be installed and configured
+// Get available departments first
+$deptResponse = $api->get(
+    'support_manager.support_manager_departments',
+    'getAll',
+    ['company_id' => 1]
+);
+
+$departmentId = 1; // Default
+if (!$deptResponse->errors() && $deptResponse->response()) {
+    $departments = $deptResponse->response();
+    if (!empty($departments)) {
+        $departmentId = $departments[0]->id;
+        echo "Using department: {$departments[0]->name} (ID: {$departmentId})\n";
+    }
+}
+
 $newTicketData = [
-    'department_id' => 1,
-    'client_id' => 1,
-    'summary' => 'Website Performance Issues',
+    'department_id' => $departmentId,
+    'summary' => 'Website Performance Issues - ' . date('Y-m-d H:i:s'),
     'priority' => 'high',
-    'message' => 'The website has been loading slowly for the past few hours. Please investigate.',
-    'type' => 'issue'
+    'details' => 'The website has been loading slowly for the past few hours. Please investigate.',
+    'client_id' => 1
 ];
 
 $response = $api->post(
@@ -87,6 +104,8 @@ $response = $api->post(
 if ($response->errors()) {
     echo "Failed to create ticket:\n";
     print_r($response->errors());
+    echo "\nNote: Support Manager plugin must be installed and configured.\n";
+    echo "Department ID and other settings must match your Blesta setup.\n";
 } else {
     $ticket = $response->response();
     echo "Ticket created successfully!\n";
@@ -98,22 +117,25 @@ echo "\n";
 
 // Example 4: Reply to a ticket
 echo "=== Reply to Support Ticket ===\n";
+
+// Note: The method is 'reply', not 'addReply'
 $replyData = [
     'ticket_id' => $ticketId,
-    'staff_id' => 1, // Or use client_id for client replies
-    'message' => 'We have identified the issue and are working on a fix. Expected resolution time is 2 hours.',
+    'staff_id' => 1, // Use staff_id for staff replies, or client_id for client replies
+    'details' => 'We have identified the issue and are working on a fix. Expected resolution time is 2 hours.',
     'type' => 'reply'
 ];
 
 $response = $api->post(
     'support_manager.support_manager_tickets',
-    'addReply',
+    'reply',
     $replyData
 );
 
 if ($response->errors()) {
     echo "Failed to add reply:\n";
     print_r($response->errors());
+    echo "\nNote: You need appropriate staff permissions to reply to tickets.\n";
 } else {
     echo "Reply added successfully!\n";
 }

@@ -75,31 +75,36 @@ echo "\n";
 
 // Example 3: Create a new invoice
 echo "=== Create New Invoice ===\n";
+
+// Note: Invoice creation requires specific line item format
+// The 'lines' parameter needs to be formatted differently
 $newInvoiceData = [
     'client_id' => $clientId,
-    'date_due' => date('Y-m-d', strtotime('+30 days')),
+    'date_billed' => date('c'),
+    'date_due' => date('c', strtotime('+30 days')),
     'currency' => 'USD',
-    'lines' => [
-        [
-            'description' => 'Web Hosting - Monthly',
-            'qty' => 1,
-            'amount' => 19.99,
-            'tax' => false
-        ],
-        [
-            'description' => 'Domain Registration',
-            'qty' => 1,
-            'amount' => 14.99,
-            'tax' => false
-        ]
-    ]
+    'status' => 'active',
+    'delivery' => ['email']
 ];
+
+// Add line items separately (API may not accept nested arrays in POST)
+$newInvoiceData['lines[0][description]'] = 'Web Hosting - Monthly';
+$newInvoiceData['lines[0][qty]'] = 1;
+$newInvoiceData['lines[0][amount]'] = 19.99;
+$newInvoiceData['lines[0][tax]'] = 'false';
+
+$newInvoiceData['lines[1][description]'] = 'Domain Registration';
+$newInvoiceData['lines[1][qty]'] = 1;
+$newInvoiceData['lines[1][amount]'] = 14.99;
+$newInvoiceData['lines[1][tax]'] = 'false';
 
 $response = $api->post('invoices', 'add', $newInvoiceData);
 
 if ($response->errors()) {
     echo "Failed to create invoice:\n";
     print_r($response->errors());
+    echo "\nNote: Invoice creation requires specific field formats and client settings.\n";
+    echo "Try using an existing invoice ID in the other examples instead.\n";
 } else {
     $invoice = $response->response();
     echo "Invoice created successfully!\n";
@@ -112,16 +117,28 @@ echo "\n";
 
 // Example 4: Update invoice status
 echo "=== Update Invoice Status ===\n";
-$response = $api->put('invoices', 'edit', [
-    'invoice_id' => $invoiceId,
-    'status' => 'active'
-]);
 
-if ($response->errors()) {
-    echo "Failed to update invoice:\n";
-    print_r($response->errors());
+// Note: You typically need to provide more than just status when updating
+// Get the invoice first to preserve existing data
+$response = $api->get('invoices', 'get', ['invoice_id' => $invoiceId]);
+
+if (!$response->errors() && $response->response()) {
+    echo "Invoice update example - use POST to invoices/setClosed or invoices/setDraft\n";
+    echo "instead of editing the invoice directly for status changes.\n\n";
+
+    // Example: Close an invoice
+    $response = $api->post('invoices', 'setClosed', [
+        'invoice_id' => $invoiceId
+    ]);
+
+    if ($response->errors()) {
+        echo "Note: Invoice may already be closed or paid:\n";
+        print_r($response->errors());
+    } else {
+        echo "Invoice closed successfully!\n";
+    }
 } else {
-    echo "Invoice status updated successfully!\n";
+    echo "Could not retrieve invoice for updating\n";
 }
 
 echo "\n";
