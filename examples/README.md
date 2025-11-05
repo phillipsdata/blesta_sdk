@@ -84,12 +84,14 @@ php examples/05_error_handling.php
 
 ## Authentication
 
-All examples use the modern authorization header authentication method:
+All examples use the modern Blesta API header authentication method:
 
 ```php
-// The SDK automatically sets the Authorization header
+// The SDK automatically sets the Blesta API headers
 $api = new BlestaApi($apiUrl, $apiUser, $apiKey);
-// Authorization: {user}:{key}
+// Headers sent:
+// BLESTA-API-USER: {user}
+// BLESTA-API-KEY: {key}
 ```
 
 This replaces the legacy HTTP Basic Auth method and provides better security and compatibility with modern PHP versions.

@@ -4,8 +4,8 @@ require_once dirname(__FILE__) . DIRECTORY_SEPARATOR . "blesta_response.php";
 /**
  * Blesta API processor
  *
- * Provides a simple interface to interact with the Blesta API using modern
- * authorization headers (API user and key) instead of legacy HTTP basic auth.
+ * Provides a simple interface to interact with the Blesta API using the
+ * BLESTA-API-USER and BLESTA-API-KEY headers instead of legacy HTTP basic auth.
  *
  * @copyright Copyright (c) 2013-2025, Phillips Data, Inc.
  * @license http://opensource.org/licenses/mit-license.php MIT License
@@ -123,9 +123,10 @@ class BlestaApi {
 		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $action);
 		curl_setopt($ch, CURLOPT_URL, $url);
 
-		// Set authorization header with API user and key
+		// Set Blesta API headers with user and key
 		$headers = array(
-			'Authorization: ' . $this->user . ':' . $this->key
+			'BLESTA-API-USER: ' . $this->user,
+			'BLESTA-API-KEY: ' . $this->key
 		);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 

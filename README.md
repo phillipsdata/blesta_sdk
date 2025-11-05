@@ -16,7 +16,7 @@ This development kit includes the following:
 ## Features
 
 * Modern PHP 8.1+ support with type declarations
-* Authorization header authentication (API user and key)
+* Blesta API header authentication (BLESTA-API-USER and BLESTA-API-KEY)
 * Support for all HTTP methods (GET, POST, PUT, DELETE)
 * Simple, fluent interface
 * Full error handling
@@ -170,6 +170,20 @@ echo $rawJson;
 // Get parsed response
 $data = $response->response();
 ```
+
+## Authentication
+
+All examples use the modern Blesta API header authentication method:
+
+```php
+// The SDK automatically sets the Blesta API headers
+$api = new BlestaApi($apiUrl, $apiUser, $apiKey);
+// Headers sent:
+// BLESTA-API-USER: {user}
+// BLESTA-API-KEY: {key}
+```
+
+This replaces the legacy HTTP Basic Auth method and provides better security and compatibility with modern PHP versions.
 
 ## Working with Gateways ##
 
