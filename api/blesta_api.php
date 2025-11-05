@@ -113,29 +113,46 @@ class BlestaApi {
 			'args' => $args
 		);
 
-		if ($action == "GET") {
-			$url .= "?" . http_build_query($args);
-			$args = null;
-		}
-
 		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $action);
+
+		// Set URL with query string for GET requests
+		if ($action == "GET" && !empty($args)) {
+			$url .= "?" . http_build_query($args);
+		}
 		curl_setopt($ch, CURLOPT_URL, $url);
 
-		// Set Blesta API headers with user and key
-		$headers = array(
+		// Set the appropriate HTTP method
+		switch ($action) {
+			case "GET":
+				curl_setopt($ch, CURLOPT_HTTPGET, true);
+				break;
+			case "POST":
+				curl_setopt($ch, CURLOPT_POST, true);
+				if (!empty($args)) {
+					curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($args));
+				}
+				break;
+			case "PUT":
+			case "DELETE":
+				curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $action);
+				if (!empty($args)) {
+					curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($args));
+				}
+				break;
+		}
+
+		// Set Blesta API headers (matching official documentation format)
+		$headers = [
 			'BLESTA-API-USER: ' . $this->user,
 			'BLESTA-API-KEY: ' . $this->key
-		);
+		];
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
-		if ($args) {
-			curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($args));
-		}
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
 		//curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 		//curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+
 		$response = curl_exec($ch);
 		$response_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 		curl_close($ch);

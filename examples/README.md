@@ -23,6 +23,19 @@ $apiKey = 'YOUR_API_KEY';                  // Your API key
 
 ## Examples Overview
 
+### 00_debug_headers.php
+**API Configuration & Debug Tool**
+- Verify API credentials are properly configured
+- Test API connectivity and authentication
+- Display detailed error messages for troubleshooting
+- Show verbose cURL output for debugging
+
+**Run this first if you're having authentication issues!**
+
+```bash
+php examples/00_debug_headers.php
+```
+
 ### 01_basic_usage.php
 **Basic API Usage**
 - Making GET requests
