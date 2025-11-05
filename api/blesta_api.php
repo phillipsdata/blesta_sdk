@@ -4,37 +4,44 @@ require_once dirname(__FILE__) . DIRECTORY_SEPARATOR . "blesta_response.php";
 /**
  * Blesta API processor
  *
- * @copyright Copyright (c) 2013, Phillips Data, Inc.
+ * Provides a simple interface to interact with the Blesta API using the
+ * BLESTA-API-USER and BLESTA-API-KEY headers instead of legacy HTTP basic auth.
+ *
+ * @copyright Copyright (c) 2013-2025, Phillips Data, Inc.
  * @license http://opensource.org/licenses/mit-license.php MIT License
  * @package blesta_sdk
  */
 class BlestaApi {
-	
+
 	/**
 	 * @var string The URL to the Blesta API
 	 */
-	private $url;
+	private string $url;
 	/**
 	 * @var string The API user
 	 */
-	private $user;
+	private string $user;
 	/**
 	 * @var string The API key
 	 */
-	private $key;
+	private string $key;
+	/**
+	 * @var array The details of the last request made
+	 */
+	private array $last_request = [];
 	/**
 	 * @var string API response format
 	 */
-	private static $format = "json";
+	private static string $format = "json";
 	
 	/**
 	 * Initializes the API
 	 *
-	 * @param string $url The URL to the Blesta API
+	 * @param string $url The URL to the Blesta API (e.g. https://yourdomain.com/api/)
 	 * @param string $user The API user
 	 * @param string $key The API key
 	 */
-	public function __construct($url, $user, $key) {
+	public function __construct(string $url, string $user, string $key) {
 		$this->url = $url;
 		$this->user = $user;
 		$this->key = $key;
@@ -48,10 +55,10 @@ class BlestaApi {
 	 * @param array $args An array of arguments to pass to the method
 	 * @return BlestaResponse The response object
 	 */
-	public function get($model, $method, array $args = array()) {
+	public function get(string $model, string $method, array $args = []): BlestaResponse {
 		return $this->submit($model, $method, $args, "GET");
 	}
-	
+
 	/**
 	 * Submit an API request via POST
 	 *
@@ -60,7 +67,7 @@ class BlestaApi {
 	 * @param array $args An array of arguments to pass to the method
 	 * @return BlestaResponse The response object
 	 */
-	public function post($model, $method, array $args = array()) {
+	public function post(string $model, string $method, array $args = []): BlestaResponse {
 		return $this->submit($model, $method, $args, "POST");
 	}
 
@@ -71,11 +78,11 @@ class BlestaApi {
 	 * @param string $method The method to request (e.g. add)
 	 * @param array $args An array of arguments to pass to the method
 	 * @return BlestaResponse The response object
-	 */	
-	public function put($model, $method, array $args = array()) {
+	 */
+	public function put(string $model, string $method, array $args = []): BlestaResponse {
 		return $this->submit($model, $method, $args, "PUT");
 	}
-	
+
 	/**
 	 * Submit an API request via DELETE
 	 *
@@ -84,19 +91,21 @@ class BlestaApi {
 	 * @param array $args An array of arguments to pass to the method
 	 * @return BlestaResponse The response object
 	 */
-	public function delete($model, $method, array $args = array()) {
+	public function delete(string $model, string $method, array $args = []): BlestaResponse {
 		return $this->submit($model, $method, $args, "DELETE");
 	}
 	
 	/**
 	 * Submits a request to the API
 	 *
-	 * @param string $uri The URI to submit to
+	 * @param string $model The model to request
+	 * @param string $method The method to request
 	 * @param array $args An array of key/value pair arguments to submit to the given API command
+	 * @param string $action The HTTP method (GET, POST, PUT, DELETE)
 	 * @return BlestaResponse The response object
 	 */
-	private function submit($model, $method, array $args = array(), $action = "POST") {
-		
+	private function submit(string $model, string $method, array $args = [], string $action = "POST"): BlestaResponse {
+
 		$url = $this->url . $model . "/" . $method . "." . self::$format;
 
 		$this->last_request = array(
@@ -104,38 +113,66 @@ class BlestaApi {
 			'args' => $args
 		);
 
-		if ($action == "GET") {
-			$url .= "?" . http_build_query($args);
-			$args = null;
-		}
-
 		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $action);
+
+		// Set URL with query string for GET requests
+		if ($action == "GET" && !empty($args)) {
+			$url .= "?" . http_build_query($args);
+		}
 		curl_setopt($ch, CURLOPT_URL, $url);
-		if ($args) {
-			curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($args));
+
+		// Set the appropriate HTTP method
+		switch ($action) {
+			case "GET":
+				curl_setopt($ch, CURLOPT_HTTPGET, true);
+				break;
+			case "POST":
+				curl_setopt($ch, CURLOPT_POST, true);
+				if (!empty($args)) {
+					curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($args));
+				}
+				break;
+			case "PUT":
+			case "DELETE":
+				curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $action);
+				if (!empty($args)) {
+					curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($args));
+				}
+				break;
 		}
 
-		curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-		curl_setopt($ch, CURLOPT_USERPWD, $this->user . ":" . $this->key);
+		// Set Blesta API headers (matching official documentation format)
+		$headers = [
+			'BLESTA-API-USER: ' . $this->user,
+			'BLESTA-API-KEY: ' . $this->key
+		];
+		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
 		//curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 		//curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+
 		$response = curl_exec($ch);
 		$response_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 		curl_close($ch);
-		
+
+		// Handle curl_exec failure
+		if ($response === false) {
+			$response = '';
+		}
+
 		return new BlestaResponse($response, $response_code);
 	}
 	
 	/**
 	 * Returns the details of the last request made
 	 *
-	 * @return array An array containg:
+	 * @return array An array containing:
 	 *	- url The URL of the last request
-	 *	- args The paramters passed to the URL
-	*/
-	public function lastRequest() {
+	 *	- args The parameters passed to the URL
+	 */
+	public function lastRequest(): array {
 		return $this->last_request;
 	}
 }

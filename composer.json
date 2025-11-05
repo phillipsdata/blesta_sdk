@@ -1,0 +1,42 @@
+{
+    "name": "phillipsdata/blesta_sdk",
+    "description": "Official PHP SDK for interfacing with the Blesta API",
+    "type": "library",
+    "keywords": [
+        "blesta",
+        "api",
+        "sdk",
+        "billing",
+        "automation"
+    ],
+    "homepage": "https://github.com/phillipsdata/blesta_sdk",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Phillips Data, Inc.",
+            "homepage": "https://www.blesta.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.1.0",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "classmap": [
+            "api/"
+        ]
+    },
+    "autoload-dev": {
+        "classmap": [
+            "examples/"
+        ]
+    },
+    "support": {
+        "docs": "https://docs.blesta.com/developers/api",
+        "issues": "https://github.com/phillipsdata/blesta_sdk/issues",
+        "source": "https://github.com/phillipsdata/blesta_sdk"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
