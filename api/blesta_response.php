@@ -20,11 +20,11 @@ class BlestaResponse {
 	 * Initializes the Blesta Response
 	 *
 	 * @param string $response The raw response data from an API request
-	 * @param int $response_code The HTTP response code for the request
+	 * @param mixed $response_code The HTTP response code for the request
 	 */
-	public function __construct(string $response, int $response_code) {
+	public function __construct(string $response, mixed $response_code) {
 		$this->raw = $response;
-		$this->response_code = $response_code;
+		$this->response_code = (int)$response_code;
 	}
 	
 	/**
@@ -34,7 +34,7 @@ class BlestaResponse {
 	 */
 	public function response(): mixed {
 		$response = $this->formatResponse();
-		if (isset($response->response)) {
+		if ($response && isset($response->response)) {
 			return $response->response;
 		}
 		return null;
@@ -67,7 +67,7 @@ class BlestaResponse {
 		if ($this->response_code != 200) {
 			$response = $this->formatResponse();
 
-			if (isset($response->errors)) {
+			if ($response && isset($response->errors)) {
 				return $response->errors;
 			} else {
 				$error = new stdClass();
@@ -81,9 +81,9 @@ class BlestaResponse {
 	/**
 	 * Formats the raw response into a stdClass object
 	 *
-	 * @return object A stdClass object representing the response
+	 * @return mixed A stdClass object representing the response, or null if JSON is invalid
 	 */
-	private function formatResponse(): object {
+	private function formatResponse(): mixed {
 		return json_decode($this->raw);
 	}
 }

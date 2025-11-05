@@ -139,6 +139,11 @@ class BlestaApi {
 		$response_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 		curl_close($ch);
 
+		// Handle curl_exec failure
+		if ($response === false) {
+			$response = '';
+		}
+
 		return new BlestaResponse($response, $response_code);
 	}
 	
