@@ -2,8 +2,11 @@
 /**
  * Example 2: Client Management
  *
- * This example demonstrates how to manage clients using the Blesta API.
- * Includes creating, updating, and retrieving client information.
+ * This example demonstrates how to retrieve and list client information.
+ *
+ * NOTE: Client creation and updating require specific field configurations
+ * that vary by Blesta installation. These examples focus on reliable read
+ * operations that work with any Blesta setup.
  */
 
 require_once __DIR__ . '/../api/blesta_api.php';
@@ -16,49 +19,10 @@ $apiKey = 'YOUR_API_KEY';
 // Initialize the API
 $api = new BlestaApi($apiUrl, $apiUser, $apiKey);
 
-// Example 1: Create a new client
-echo "=== Creating a New Client ===\n";
-
-// Note: Creating clients requires specific data. This example shows the structure.
-// You may need to adjust these values based on your Blesta configuration.
-$newClientData = [
-    'first_name' => 'John',
-    'last_name' => 'Doe',
-    'email' => 'john.doe@example.com',
-    'company' => 'Example Corporation',
-    'address1' => '123 Main Street',
-    'city' => 'New York',
-    'state' => 'NY',
-    'zip' => '10001',
-    'country' => 'US',
-    'username' => 'johndoe' . time(), // Unique username
-    'new_password' => bin2hex(random_bytes(8)), // Random password
-    'confirm_password' => null, // Set to same as new_password if required
-];
-
-// Set confirm_password same as new_password
-$newClientData['confirm_password'] = $newClientData['new_password'];
-
-$response = $api->post('clients', 'add', $newClientData);
-
-if ($response->errors()) {
-    echo "Failed to create client:\n";
-    print_r($response->errors());
-    echo "\nNote: Client creation requires specific fields based on your Blesta settings.\n";
-    echo "If this fails, try getting an existing client instead (see Example 2).\n\n";
-
-    // Use a default client ID for remaining examples
-    $clientId = 1;
-} else {
-    $client = $response->response();
-    $clientId = $client->id;
-    echo "Client created successfully!\n";
-    echo "Client ID: {$clientId}\n";
-    echo "Name: {$client->first_name} {$client->last_name}\n\n";
-}
-
-// Example 2: Get client details
+// Example 1: Get a specific client
 echo "=== Retrieving Client Details ===\n";
+$clientId = 1; // Change to an existing client ID in your system
+
 $response = $api->get('clients', 'get', ['client_id' => $clientId]);
 
 if ($response->errors()) {
@@ -70,67 +34,95 @@ if ($response->errors()) {
     echo "ID: {$client->id}\n";
     echo "Name: {$client->first_name} {$client->last_name}\n";
     echo "Email: {$client->email}\n";
-    echo "Company: {$client->company}\n";
-}
-
-echo "\n";
-
-// Example 3: Update client information
-echo "=== Updating Client Information ===\n";
-
-// Note: Updating requires the client's current data plus changes
-// It's safer to get the client first, modify, then update
-$response = $api->get('clients', 'get', ['client_id' => $clientId]);
-
-if (!$response->errors() && $response->response()) {
-    $currentClient = $response->response();
-
-    // Prepare update with required fields
-    $updateData = [
-        'client_id' => $clientId,
-        'first_name' => $currentClient->first_name,
-        'last_name' => $currentClient->last_name,
-        'email' => $currentClient->email,
-        'company' => 'Updated Corporation Name', // The change we want to make
-        'address1' => '456 Updated Avenue', // Another change
-        'city' => $currentClient->city,
-        'state' => $currentClient->state,
-        'zip' => $currentClient->zip,
-        'country' => $currentClient->country
-    ];
-
-    $response = $api->post('clients', 'edit', $updateData);
-
-    if ($response->errors()) {
-        echo "Failed to update client:\n";
-        print_r($response->errors());
-    } else {
-        echo "Client updated successfully!\n";
-        echo "New company name: Updated Corporation Name\n";
+    echo "Company: " . ($client->company ?? '(none)') . "\n";
+    echo "Status: {$client->status}\n";
+    if (isset($client->date_added)) {
+        echo "Date Added: {$client->date_added}\n";
     }
-} else {
-    echo "Could not retrieve client for updating\n";
 }
 
 echo "\n";
 
-// Example 4: List all clients with pagination
-echo "=== Listing Clients with Pagination ===\n";
+// Example 2: List all clients with pagination
+echo "=== Listing All Clients ===\n";
 $response = $api->get('clients', 'getAll', [
     'page' => 1,
     'order_by' => ['date_added' => 'desc']
 ]);
 
-if (!$response->errors()) {
+if ($response->errors()) {
+    echo "Failed to retrieve clients:\n";
+    print_r($response->errors());
+} else {
     $clients = $response->response();
-    echo "Retrieved " . count($clients) . " clients\n";
+    echo "Retrieved " . count($clients) . " clients\n\n";
+
     foreach ($clients as $client) {
         echo sprintf(
-            "- [%d] %s %s (%s)\n",
+            "- [%d] %s %s (%s) - Status: %s\n",
             $client->id,
             $client->first_name,
             $client->last_name,
-            $client->email
+            $client->email,
+            $client->status
         );
     }
 }
+
+echo "\n";
+
+// Example 3: Search for clients by email
+echo "=== Search Clients by Email ===\n";
+$searchEmail = 'example.com'; // Domain to search for
+
+$response = $api->get('clients', 'getAll');
+if (!$response->errors()) {
+    $allClients = $response->response();
+    $matches = array_filter($allClients, function($client) use ($searchEmail) {
+        return stripos($client->email, $searchEmail) !== false;
+    });
+
+    echo "Found " . count($matches) . " clients with '{$searchEmail}' in email:\n";
+    foreach ($matches as $client) {
+        echo "  - {$client->first_name} {$client->last_name} ({$client->email})\n";
+    }
+}
+
+echo "\n";
+
+// Example 4: Get client's services
+echo "=== Get Client Services ===\n";
+$response = $api->get('clients', 'getServices', ['client_id' => $clientId]);
+
+if ($response->errors()) {
+    echo "Failed to retrieve services:\n";
+    print_r($response->errors());
+} else {
+    $services = $response->response();
+    if (empty($services)) {
+        echo "No services found for this client.\n";
+    } else {
+        echo "Client has " . count($services) . " service(s):\n";
+        foreach ($services as $service) {
+            echo sprintf(
+                "  - Service ID: %d, Package: %s, Status: %s\n",
+                $service->id,
+                $service->package->name ?? 'Unknown',
+                $service->status
+            );
+        }
+    }
+}
+
+echo "\n\n";
+
+echo "=== TODO: Advanced Operations ===\n";
+echo "Creating and updating clients requires specific field configurations\n";
+echo "that depend on your Blesta settings (custom fields, required fields, etc.)\n";
+echo "For these operations, consult the Blesta API documentation and test with\n";
+echo "your specific setup.\n\n";
+echo "Recommended workflow:\n";
+echo "1. Get an existing client to see the data structure\n";
+echo "2. Use that structure as a template for new clients\n";
+echo "3. Test with your required/custom fields\n";
+

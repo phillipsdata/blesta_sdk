@@ -2,8 +2,11 @@
 /**
  * Example 3: Invoice Operations
  *
- * This example demonstrates how to work with invoices using the Blesta API.
- * Includes creating invoices, retrieving invoice data, and managing invoice status.
+ * This example demonstrates how to retrieve and work with invoices.
+ *
+ * NOTE: Invoice creation requires specific configurations and custom fields
+ * that vary by Blesta installation. This example focuses on reliable read
+ * and status operations.
  */
 
 require_once __DIR__ . '/../api/blesta_api.php';
@@ -30,14 +33,15 @@ if ($response->errors()) {
     print_r($response->errors());
 } else {
     $invoices = $response->response();
-    echo "Found " . count($invoices) . " open invoices\n";
+    echo "Found " . count($invoices) . " open invoice(s)\n";
     foreach ($invoices as $invoice) {
         echo sprintf(
-            "- Invoice #%d: %s (Due: %s, Total: %s)\n",
+            "- Invoice #%d: %s (Due: %s, Total: %s %s)\n",
             $invoice->id,
             $invoice->id_code,
             $invoice->date_due,
-            $invoice->total
+            $invoice->total,
+            $invoice->currency
         );
     }
 }
@@ -57,99 +61,94 @@ if ($response->errors()) {
     $invoice = $response->response();
     echo "Invoice #{$invoice->id_code}\n";
     echo "Client ID: {$invoice->client_id}\n";
-    echo "Date Created: {$invoice->date_created}\n";
+    echo "Date Created: " . ($invoice->date_created ?? 'N/A') . "\n";
     echo "Date Due: {$invoice->date_due}\n";
     echo "Status: {$invoice->status}\n";
+    echo "Currency: {$invoice->currency}\n";
     echo "Subtotal: {$invoice->subtotal}\n";
     echo "Total: {$invoice->total}\n";
 
     if (!empty($invoice->line_items)) {
         echo "\nLine Items:\n";
         foreach ($invoice->line_items as $item) {
-            echo "  - {$item->description}: {$item->amount}\n";
+            $dateRange = '';
+            if (isset($item->service_date_added) && isset($item->service_date_renews)) {
+                $dateRange = " ({$item->service_date_added} - {$item->service_date_renews})";
+            }
+            echo "  - {$item->description}{$dateRange}: {$item->amount}\n";
         }
     }
 }
 
 echo "\n";
 
-// Example 3: Create a new invoice
-echo "=== Create New Invoice ===\n";
-
-// Note: Invoice creation requires specific line item format
-// The 'lines' parameter needs to be formatted differently
-$newInvoiceData = [
-    'client_id' => $clientId,
-    'date_billed' => date('c'),
-    'date_due' => date('c', strtotime('+30 days')),
-    'currency' => 'USD',
-    'status' => 'active',
-    'delivery' => ['email']
-];
-
-// Add line items separately (API may not accept nested arrays in POST)
-$newInvoiceData['lines[0][description]'] = 'Web Hosting - Monthly';
-$newInvoiceData['lines[0][qty]'] = 1;
-$newInvoiceData['lines[0][amount]'] = 19.99;
-$newInvoiceData['lines[0][tax]'] = 'false';
-
-$newInvoiceData['lines[1][description]'] = 'Domain Registration';
-$newInvoiceData['lines[1][qty]'] = 1;
-$newInvoiceData['lines[1][amount]'] = 14.99;
-$newInvoiceData['lines[1][tax]'] = 'false';
-
-$response = $api->post('invoices', 'add', $newInvoiceData);
-
-if ($response->errors()) {
-    echo "Failed to create invoice:\n";
-    print_r($response->errors());
-    echo "\nNote: Invoice creation requires specific field formats and client settings.\n";
-    echo "Try using an existing invoice ID in the other examples instead.\n";
-} else {
-    $invoice = $response->response();
-    echo "Invoice created successfully!\n";
-    echo "Invoice ID: {$invoice->id}\n";
-    echo "Invoice Number: {$invoice->id_code}\n";
-    echo "Total: {$invoice->total}\n";
-}
-
-echo "\n";
-
-// Example 4: Update invoice status
-echo "=== Update Invoice Status ===\n";
-
-// Note: You typically need to provide more than just status when updating
-// Get the invoice first to preserve existing data
-$response = $api->get('invoices', 'get', ['invoice_id' => $invoiceId]);
-
-if (!$response->errors() && $response->response()) {
-    echo "Invoice update example - use POST to invoices/setClosed or invoices/setDraft\n";
-    echo "instead of editing the invoice directly for status changes.\n\n";
-
-    // Example: Close an invoice
-    $response = $api->post('invoices', 'setClosed', [
-        'invoice_id' => $invoiceId
-    ]);
-
-    if ($response->errors()) {
-        echo "Note: Invoice may already be closed or paid:\n";
-        print_r($response->errors());
-    } else {
-        echo "Invoice closed successfully!\n";
-    }
-} else {
-    echo "Could not retrieve invoice for updating\n";
-}
-
-echo "\n";
-
-// Example 5: Get invoice PDF (returns base64 encoded PDF)
-echo "=== Get Invoice PDF ===\n";
-$response = $api->get('invoices', 'getPdf', ['invoice_id' => $invoiceId]);
+// Example 3: Get all invoices (with pagination)
+echo "=== Get All Invoices (Paginated) ===\n";
+$response = $api->get('invoices', 'getAll', [
+    'page' => 1,
+    'order_by' => ['date_due' => 'desc']
+]);
 
 if (!$response->errors()) {
-    $pdf = $response->response();
-    // Save or display PDF
-    echo "PDF retrieved successfully (base64 encoded)\n";
-    // Example: file_put_contents("invoice_{$invoiceId}.pdf", base64_decode($pdf));
+    $invoices = $response->response();
+    echo "Retrieved " . count($invoices) . " invoice(s)\n";
+
+    $statusCounts = [];
+    foreach ($invoices as $invoice) {
+        $statusCounts[$invoice->status] = ($statusCounts[$invoice->status] ?? 0) + 1;
+    }
+
+    echo "\nInvoices by status:\n";
+    foreach ($statusCounts as $status => $count) {
+        echo "  - {$status}: {$count}\n";
+    }
 }
+
+echo "\n";
+
+// Example 4: Get recurring invoices
+echo "=== Get Recurring Invoices ===\n";
+$response = $api->get('invoices', 'getAllRecurring');
+
+if ($response->errors()) {
+    echo "Failed to retrieve recurring invoices:\n";
+    print_r($response->errors());
+} else {
+    $recurringInvoices = $response->response();
+    if (empty($recurringInvoices)) {
+        echo "No recurring invoices found.\n";
+    } else {
+        echo "Found " . count($recurringInvoices) . " recurring invoice(s):\n";
+        foreach ($recurringInvoices as $recurring) {
+            echo sprintf(
+                "  - ID: %d, Client: %d, Term: %s, Next Date: %s\n",
+                $recurring->id,
+                $recurring->client_id,
+                $recurring->term ?? 'N/A',
+                $recurring->date_renews ?? 'N/A'
+            );
+        }
+    }
+}
+
+echo "\n";
+
+// Example 5: Invoice status operations (that work reliably)
+echo "=== Invoice Status Operations ===\n";
+echo "Available status operations:\n";
+echo "  - invoices/setClosed: Close an invoice\n";
+echo "  - invoices/setDraft: Set invoice to draft status\n";
+echo "\nExample usage:\n";
+echo "\$api->post('invoices', 'setClosed', ['invoice_id' => \$invoiceId]);\n";
+
+echo "\n\n";
+
+echo "=== TODO: Advanced Operations ===\n";
+echo "Creating invoices requires:\n";
+echo "  - Understanding your currency and tax settings\n";
+echo "  - Proper line item formatting for your setup\n";
+echo "  - Knowledge of required custom fields\n";
+echo "  - Valid client and service configurations\n\n";
+echo "Recommendation: Use the Blesta admin panel to create an invoice,\n";
+echo "then retrieve it via API to see the exact structure your system uses.\n";
+
