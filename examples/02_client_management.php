@@ -90,27 +90,22 @@ if (!$response->errors()) {
 
 echo "\n";
 
-// Example 4: Get client's services
-echo "=== Get Client Services ===\n";
-$response = $api->get('clients', 'getServices', ['client_id' => $clientId]);
+// Example 3: Get client statistics
+echo "=== Client Statistics ===\n";
+$response = $api->get('clients', 'getAll');
 
-if ($response->errors()) {
-    echo "Failed to retrieve services:\n";
-    print_r($response->errors());
-} else {
-    $services = $response->response();
-    if (empty($services)) {
-        echo "No services found for this client.\n";
-    } else {
-        echo "Client has " . count($services) . " service(s):\n";
-        foreach ($services as $service) {
-            echo sprintf(
-                "  - Service ID: %d, Package: %s, Status: %s\n",
-                $service->id,
-                $service->package->name ?? 'Unknown',
-                $service->status
-            );
-        }
+if (!$response->errors()) {
+    $allClients = $response->response();
+
+    $statusCounts = [];
+    foreach ($allClients as $client) {
+        $status = $client->status;
+        $statusCounts[$status] = ($statusCounts[$status] ?? 0) + 1;
+    }
+
+    echo "Client counts by status:\n";
+    foreach ($statusCounts as $status => $count) {
+        echo "  - {$status}: {$count}\n";
     }
 }
 
@@ -124,5 +119,11 @@ echo "your specific setup.\n\n";
 echo "Recommended workflow:\n";
 echo "1. Get an existing client to see the data structure\n";
 echo "2. Use that structure as a template for new clients\n";
-echo "3. Test with your required/custom fields\n";
+echo "3. Test with your required/custom fields\n\n";
+
+echo "Other useful client API methods:\n";
+echo "  - clients/getNotes: Get notes for a client\n";
+echo "  - services/getAll: Get all services (filter by client_id if needed)\n";
+echo "  - invoices/getAll: Get invoices for a client\n";
+echo "  - transactions/getAll: Get transactions for a client\n";
 
