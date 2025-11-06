@@ -10,7 +10,7 @@ This development kit includes the following:
 ## Requirements
 
 * **PHP 8.1.0 or greater**
-* **Blesta 3.0.0 or greater**
+* **Blesta 5.11.0 or greater**
 * cURL extension
 
 ## Features
